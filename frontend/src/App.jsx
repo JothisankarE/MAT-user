@@ -1,9 +1,9 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Home from './pages/Home/Home'
 import Footer from './components/Footer/Footer'
 import Header from './components/Header/Header'
 import Navbar from './components/Navbar/Navbar'
-import { Route, Routes } from 'react-router-dom'
+import { Route, Routes, useLocation } from 'react-router-dom'
 import Cart from './pages/Cart/Cart'
 import LoginPopup from './components/LoginPopup/LoginPopup'
 import PlaceOrder from './pages/PlaceOrder/PlaceOrder'
@@ -27,53 +27,105 @@ import NotificationPopup from './components/NotificationPopup/NotificationPopup'
 import LatestProducts from './pages/LatestProducts/LatestProducts'
 import SaleBannerPopup from './components/SaleBannerPopup/SaleBannerPopup'
 
-const App = () => {
+// Admin Panel Imports
+import AdminLayout from './AdminPanel/AdminLayout';
+import Add from './AdminPanel/pages/Add/Add';
+import List from './AdminPanel/pages/List/List';
+import Orders from './AdminPanel/pages/Orders/Orders';
+import AdminLogin from './AdminPanel/pages/AdminLogin/AdminLogin';
+import Content from './AdminPanel/pages/Home/Content';
+import ChatQueries from './AdminPanel/pages/ChatQueries/ChatQueries';
+import DeletedOrders from './AdminPanel/pages/DeletedOrders/DeletedOrders';
 
-  const [showLogin,setShowLogin] = useState(false);
-  const [showSupport,setShowSupport] = useState(false);
+const App = () => {
+  const location = useLocation();
+  const isAdminPath = location.pathname.startsWith('/admin');
+
+  const [showLogin, setShowLogin] = useState(false);
+  const [showSupport, setShowSupport] = useState(false);
   const [showLatestProducts, setShowLatestProducts] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [latestPopupCategory, setLatestPopupCategory] = useState("All");
 
+  // Admin Token State
+  const [adminToken, setAdminToken] = useState(localStorage.getItem('adminToken') || "");
+
+  useEffect(() => {
+    if (adminToken) {
+      localStorage.setItem('adminToken', adminToken);
+    } else {
+      localStorage.removeItem('adminToken');
+    }
+  }, [adminToken]);
+
+  // If we are on an admin path and not logged in as admin, show admin login
+  if (isAdminPath && adminToken === "") {
+    return (
+      <>
+        <ToastContainer />
+        <AdminLogin setToken={setAdminToken} />
+      </>
+    );
+  }
+
   return (
     <>
-    <ToastContainer/>
-    {showLogin?<LoginPopup setShowLogin={setShowLogin}/>:<></>}
-    {showSupport?<SupportPopup setShowSupport={setShowSupport}/>:<></>}
-    {showLatestProducts?<LatestProductsPopup setShowLatestProducts={setShowLatestProducts} category={latestPopupCategory} setCategory={setLatestPopupCategory} />:<></>}
-    <NotificationPopup showNotifications={showNotifications} setShowNotifications={setShowNotifications} />
-    <ProductPopup />
-    <SaleBannerPopup />
-    <CategoryPopup />
-    <Navbar 
-      setShowLogin={setShowLogin} 
-      setShowSupport={setShowSupport} 
-      setShowLatestProducts={setShowLatestProducts}
-      setLatestPopupCategory={setLatestPopupCategory}
-      setShowNotifications={setShowNotifications}
-      showNotifications={showNotifications}
-    />
-      <div className='app'>
-        {/* <Navbar setShowLogin={setShowLogin}/> */}
+      <ToastContainer />
+      {!isAdminPath && (
+        <>
+          {showLogin ? <LoginPopup setShowLogin={setShowLogin} /> : <></>}
+          {showSupport ? <SupportPopup setShowSupport={setShowSupport} /> : <></>}
+          {showLatestProducts ? <LatestProductsPopup setShowLatestProducts={setShowLatestProducts} category={latestPopupCategory} setCategory={setLatestPopupCategory} /> : <></>}
+          <NotificationPopup showNotifications={showNotifications} setShowNotifications={setShowNotifications} />
+          <ProductPopup />
+          <SaleBannerPopup />
+          <CategoryPopup />
+          <Navbar
+            setShowLogin={setShowLogin}
+            setShowSupport={setShowSupport}
+            setShowLatestProducts={setShowLatestProducts}
+            setLatestPopupCategory={setLatestPopupCategory}
+            setShowNotifications={setShowNotifications}
+            showNotifications={showNotifications}
+          />
+        </>
+      )}
+
+      <div className={isAdminPath ? '' : 'app'}>
         <Routes>
-          <Route path='/' element={<Home />}/>
-          
-          <Route path='/products' element={<Header />}/>
-          <Route path='/cart' element={<Cart />}/>
-          <Route path='/order' element={<PlaceOrder />}/>
-          <Route path='/myorders' element={<MyOrders />}/>
-          <Route path='/verify' element={<Verify />}/>
+          {/* Frontend Routes */}
+          <Route path='/' element={<Home />} />
+          <Route path='/products' element={<Header />} />
+          <Route path='/cart' element={<Cart />} />
+          <Route path='/order' element={<PlaceOrder />} />
+          <Route path='/myorders' element={<MyOrders />} />
+          <Route path='/verify' element={<Verify />} />
           <Route path="/aboutus" element={<AboutUs />} />
           <Route path='/contactus' element={<ContactUs />} />
           <Route path='/confirm' element={<ConfirmationPage />} />
           <Route path='/product/:id' element={<ProductDetails />} />
           <Route path='/category/:categoryName' element={<CategoryDetails />} />
-          <Route path='/settings' element={<ProfileSettings setShowSupport={setShowSupport}/>} />
+          <Route path='/settings' element={<ProfileSettings setShowSupport={setShowSupport} />} />
           <Route path='/latest-products' element={<LatestProducts />} />
+
+          {/* Admin Routes */}
+          <Route path="/admin" element={<AdminLayout setToken={setAdminToken} />}>
+            <Route index element={<Content />} />
+            <Route path="add" element={<Add token={adminToken} />} />
+            <Route path="list" element={<List token={adminToken} />} />
+            <Route path="orders" element={<Orders token={adminToken} />} />
+            <Route path="queries" element={<ChatQueries />} />
+            <Route path="deleted-orders" element={<DeletedOrders />} />
+          </Route>
         </Routes>
       </div>
-      <Footer />
-      <HelpChatbot />
+
+      {!isAdminPath && (
+        <>
+          <Footer />
+          <HelpChatbot />
+        </>
+      )}
     </>
   )
 }
